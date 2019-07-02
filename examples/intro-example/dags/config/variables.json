@@ -1,0 +1,13 @@
+{
+    "delimiter": ";",
+    "file_path": "/usr/local/airflow/dags/ml_framework/bank-full.csv",
+    "heavy_algos": "naiveBayes,neuralNetwork,decisionTree,adaBoost,randomForestClassifier,logisticRegressionClassifier,qda,lda",
+    "kfold_validation_count": 6,
+    "ml_algos": "naiveBayes,neuralNetwork,decisionTree,adaBoost,randomForestClassifier,logisticRegressionClassifier,qda,lda",
+    "one_hot_encoding_columns": "job,marital,education,contact,poutcome,y",
+    "pred_column": "y",
+    "pred_values": "yes,no",
+    "simplicity_hash": " {\r\n    'adaBoost' : 9.9,\r\n    'naiveBayes' : 10,\r\n    'randomForestClassifier': 9.9,\r\n    'decisionTree' : 10,\r\n    'logisticRegressionClassifier' : 10,\r\n    'svmClassifier' : 9.9,\r\n    'neuralNetwork' : 9.8,\r\n    'lda' : 10,\r\n    'qda' : 10\r\n}",
+    "speed_hash": "{\r\n    0.1 : 10,\r\n    0.5 : 9,\r\n    1 : 8,\r\n    2.5 : 7\r\n}",
+    "weightage_hash": "{\r\n    'f1_score' : 20,\r\n    'recall' : 10,\r\n    'specificity' : 10,\r\n    'precision' : 10,\r\n    'roc_auc_score' : 20,\r\n    'brier_score' : 10,\r\n    'accuracy' : 10,\r\n    'simplicity' : 5,\r\n    'time_for_pred' : 5\r\n}"
+}
