@@ -46,7 +46,7 @@ def one_hot(df, cols):
 
 
 
-def preprocess(kfold_cross_validation_count,file_path,y_pred_column,y_pred_values,delimiter_specified,one_hot_columns):
+def preprocess(kfold_cross_validation_count,file_path,y_pred_column,y_pred_values,delimiter_specified,one_hot_columns,drop_columns):
     # try :
     # print(os.getcwd())
     bank_marketing = pd.read_csv(file_path,delimiter=delimiter_specified)
@@ -55,6 +55,9 @@ def preprocess(kfold_cross_validation_count,file_path,y_pred_column,y_pred_value
     bank_marketingY = bank_marketing.loc[:,[f'{y_pred_column}_{y_pred_values[0]}',f'{y_pred_column}_{y_pred_values[1]}']]
     bank_marketing = bank_marketing.drop(f'{y_pred_column}_{y_pred_values[0]}',axis=1)
     bank_marketing = bank_marketing.drop(f'{y_pred_column}_{y_pred_values[1]}',axis=1)
+
+    for column in drop_columns :
+        bank_marketing.drop(column,axis=1)
     # print(bank_marketing)
 
     bank_marketing = feature_normalize(bank_marketing)

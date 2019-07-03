@@ -42,8 +42,9 @@ default_args = {
     'email': ['tabish.maniar@synechron.com'],
     'email_on_failure': True,
     'email_on_retry': False,
-    'retries': 1,
+    'retries': 3,
     'retry_delay': timedelta(minutes=2),
+    # 'concurrency': 2,
     # 'queue': 'bash_queue',
     # 'pool': 'backfill',
     # 'priority_weight': 10,
@@ -66,6 +67,7 @@ file_path = Variable.get("file_path")
 delimiter = Variable.get("delimiter")
 one_hot_columns = Variable.get("one_hot_encoding_columns").split(",")
 kfold_validation_count = int(Variable.get("kfold_validation_count"))
+drop_columns = Variable.get("drop_columns",default_var="").split(",")
 
 simplicity_hash = Variable.get("simplicity_hash",deserialize_json=True )
 speed_hash = Variable.get("speed_hash",deserialize_json=True)
@@ -82,7 +84,7 @@ dag = DAG(
 t1 = PythonOperator(
     task_id='preprocess',
     python_callable=preprocess,
-    op_args=[kfold_validation_count,file_path,pred_column,pred_values,delimiter,one_hot_columns],
+    op_args=[kfold_validation_count,file_path,pred_column,pred_values,delimiter,one_hot_columns,drop_columns],
     dag=dag,
 )
 
