@@ -1,0 +1,9 @@
+version: '3'
+services:
+  logger:
+    image: mlflow-docker-example
+    volumes:
+      - ./examples/intro-example/logs:/usr/local/mlflow/
+    restart: always
+    ports:
+      - "5000:5000"
