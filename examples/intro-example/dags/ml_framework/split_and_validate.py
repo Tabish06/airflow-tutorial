@@ -201,7 +201,7 @@ def score(index,algo):
     trainY = pd.read_csv(f'/usr/local/airflow/trainY_{index}.csv')
     testY = pd.read_csv(f'/usr/local/airflow/testY_{index}.csv')
     if algo == 'neuralNetwork' :
-        model,score = globals()[algo](train,test,trainY,testY)
+        model,metrics = globals()[algo](train,test,trainY,testY)
     else :
-        model,score = globals()[algo](train,test,trainY.iloc[:,[1]],testY.iloc[:,[1]])
-    return score
+        model,metrics = globals()[algo](train,test,trainY.iloc[:,[1]],testY.iloc[:,[1]])
+    return metrics

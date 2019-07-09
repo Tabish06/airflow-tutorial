@@ -1,0 +1,38 @@
+{
+    "delimiter": ";",
+    "file_path": "/usr/local/airflow/dags/ml_framework/bank-full.csv",
+    "heavy_algos": "naiveBayes,decisionTree,adaBoost,randomForestClassifier,logisticRegressionClassifier,qda,lda,neuralNetwork",
+    "kfold_validation_count": 5,
+    "ml_algos": "decisionTree,randomForestClassifier,logisticRegressionClassifier,neuralNetwork",
+    "one_hot_encoding_columns": "job,marital,education,contact,poutcome,y",
+    "pred_column": "y",
+    "pred_values": "yes,no",
+    "simplicity_hash": {
+        "adaBoost": 9.9,
+        "decisionTree": 10,
+        "lda": 10,
+        "logisticRegressionClassifier": 10,
+        "naiveBayes": 10,
+        "neuralNetwork": 9.8,
+        "qda": 10,
+        "randomForestClassifier": 9.9,
+        "svmClassifier": 9.9
+    },
+    "speed_hash": {
+        "0.1": "10",
+        "0.5": "9",
+        "1": "8",
+        "2.5": "7"
+    },
+    "weightage_hash": {
+        "accuracy": 10,
+        "brier_score": 10,
+        "f1_score": 20,
+        "precision": 10,
+        "recall": 10,
+        "roc_auc_score": 20,
+        "simplicity": 5,
+        "specificity": 10,
+        "time_for_pred": 5
+    }
+}

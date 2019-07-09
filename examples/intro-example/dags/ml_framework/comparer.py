@@ -54,6 +54,22 @@ def update_f1_roc_balance(class_ratio,weightage_hash) :
             weightage_hash['roc_auc_score'] -= 5
             weightage_hash['f1_score'] += 5   
 
+def calculateWeightedScore(weightage_hash,scores,simplicity_hash,speed_hash,model_name):
+    weightedScore = 0
+    for (score_name, score) in scores.items():
+        if isWeightThere(weightage_hash,score_name):
+            if score_name == 'brier_score' :
+                weightedScore += (weightage_hash[score_name] - (weightage_hash[score_name] * score))
+            # elif score_name == 'log_loss_score':
+            #     weightedScore += (calcLogScore(log_loss_normalized_score,score)/(max(log_loss_array) + min(log_loss_array) )) * weightage_hash[score_name]
+            elif score_name == 'time_for_pred':
+                    weightedScore += weightage_hash[score_name] * calcSpeedScore(score,speed_hash) / 10
+            else :
+                weightedScore += weightage_hash[score_name] * score 
+    weightedScore += (simplicity_hash[model_name]/10) * weightage_hash['simplicity']
+    return weightedScore
+
+
 def calculateScore(storeScores,log_loss_array,simplicity_hash,weightage_hash,speed_hash,class_ratio) :
     # weightage_hash = copy(weightage_hash)
     class_ratio = float(class_ratio)
@@ -77,26 +93,15 @@ def calculateScore(storeScores,log_loss_array,simplicity_hash,weightage_hash,spe
     ##Code to calculate final score
     final_score = {}
     for (model_name,scores) in storeScores.items() :
-        final_score[model_name] = 0 
-        for (score_name, score) in scores.items():
-            if isWeightThere(weightage_hash,score_name):
-                if score_name == 'brier_score' :
-                    final_score[model_name] += (weightage_hash[score_name] - (weightage_hash[score_name] * score))
-                elif score_name == 'log_loss_score':
-                    final_score[model_name] += (calcLogScore(log_loss_normalized_score,score)/(max(log_loss_array) + min(log_loss_array) )) * weightage_hash[score_name]
-                elif score_name == 'time_for_pred':
-                        final_score[model_name] += weightage_hash[score_name] * calcSpeedScore(score,speed_hash) / 10
-                else :
-                    final_score[model_name] += weightage_hash[score_name] * score 
-        final_score[model_name] += (simplicity_hash[model_name]/10) * weightage_hash['simplicity']
+        final_score[model_name] = calculateWeightedScore(weightage_hash,scores,simplicity_hash,speed_hash,model_name)
     print("========================FINAL SCORE============================")
     maxScore = 0 
     winner = None
-    for (model_name,final_score) in final_score.items() :
-        if final_score > maxScore :
-            maxScore = final_score
+    for (model_name,collated_score) in final_score.items() :
+        if collated_score > maxScore :
+            maxScore = collated_score
             winner = model_name
-        print(model_name,'                   \t\t', round(final_score,2))
+        print(model_name,'                   \t\t', round(collated_score,2))
     print(" ==========================AND THE WINNER IS========================")
     print(winner)
     print("====================================================================")

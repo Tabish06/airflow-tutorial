@@ -30,9 +30,14 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 from ml_framework.preprocess import preprocess
 from ml_framework.comparer import calculateScore
+from ml_framework.comparer import calculateWeightedScore
+
 from ml_framework.split_and_validate import score
 from airflow.models import Variable
-
+from airflow.sensors.s3_key_sensor import S3KeySensor
+from airflow.hooks import S3_hook
+import mlflow
+# - The following configuration values may be limiting the number of queueable processes: parallelism, dag_concurrency, max_active_dag_runs_per_dag, non_pooled_task_slot_count
 
 
 default_args = {
@@ -72,19 +77,68 @@ drop_columns = Variable.get("drop_columns",default_var="").split(",")
 simplicity_hash = Variable.get("simplicity_hash",deserialize_json=True )
 speed_hash = Variable.get("speed_hash",deserialize_json=True)
 weightage_hash = Variable.get("weightage_hash",deserialize_json=True)
+min_max_normalize = int(Variable.get("normalize_min_max",default_var="1"))
+schedule = timedelta(days=1)
+
+bucket_name = Variable.get("bucket_name",default_var="mdlc_synechron")
+
 
 dag = DAG(
     'mdlc2',
     default_args=default_args,
     description='Machine Learning Pipeline Lifecycle',
-    schedule_interval=timedelta(days=1),
+    schedule_interval=schedule,
 )
+# {"aws_access_key_id":"ASIA5PTJ3IONDDPYTP5B","aws_secret_access_key":"tJSVnKE+qJnUcT6J+iQPKvu6vmRT8aJvW1cnkuWa"}
+# file_suffix = "{{ execution_date.strftime('%Y-%m-%d') }}"
+# bucket_key_template = 's3://{}/datafile_{}.csv'.format(bucket_name,file_suffix)
+
+
+mlflow.set_tracking_uri('http://192.168.99.100:5000')
+# >>> mlflow.start_run()
+# <ActiveRun: >
+# >>> mlflow.log_param("my","param")
+# >>> mlflow.log_metric("score",100)
+# >>> mlflow.end_run()
+# >>> exit()
+
+
+# def new_file_detection(**kwargs):
+#     print("A new file has arrived in s3 bucket")
+
+# file_sensor = S3KeySensor(
+#  task_id='s3_key_sensor_task',
+#  poke_interval=60 * 10, # (seconds); checking file every half an hour
+#  timeout=60 * 60 * 12, # timeout in 12 hours
+#  bucket_key=bucket_key_template,
+#  bucket_name=None,
+#  # conn_id='my_conn_S3',
+#  wildcard_match=False,
+#  dag=dag
+# )
+
+
+# def fetch_file():
+#     hook = S3_hook.S3Hook('my_conn_S3')
+#     data_file = hook.read_key(bucket_key_template)
+#     file = open(file_path, 'w')
+#     file.write(data_file)
+#     file.close()
+
+
+# file_fetch = PythonOperator(
+#     task_id='fetch_from_s3',
+#     python_callable=fetch_file,
+#     dag=dag
+#     )
+
+# file_sensor >> file_fetch
 
 
 t1 = PythonOperator(
     task_id='preprocess',
     python_callable=preprocess,
-    op_args=[kfold_validation_count,file_path,pred_column,pred_values,delimiter,one_hot_columns,drop_columns],
+    op_args=[kfold_validation_count,file_path,pred_column,pred_values,delimiter,one_hot_columns,drop_columns,bool(min_max_normalize)],
     dag=dag,
 )
 
@@ -118,13 +172,17 @@ def push_score(idx,**kwargs):
 
 def average_score(algo,**context):
     # print(context)
-    final_score = context['ti'].xcom_pull(task_ids=f'score_0_{algo}')
+    final_score = context['ti'].xcom_pull(task_ids=f'kfold_0_{algo}')
 
     for i in range(1,kfold_validation_count):
-        for (key,value) in  context['ti'].xcom_pull(task_ids=f'score_{i}_{algo}').items() :
+        for (key,value) in  context['ti'].xcom_pull(task_ids=f'kfold_{i}_{algo}').items() :
             final_score[key] += value
-    for (key,value) in final_score.items():
-        final_score[key] /= kfold_validation_count
+    with mlflow.start_run(run_name=algo) as run:
+        for (key,value) in final_score.items():
+            final_score[key] /= kfold_validation_count
+            mlflow.log_metric(key.capitalize(),final_score[key])
+        weighted_score = calculateWeightedScore(weightage_hash,final_score,simplicity_hash,speed_hash,algo)
+        mlflow.log_metric("Weighted Score",weighted_score)
     return {algo: final_score}
 
 
@@ -135,7 +193,13 @@ def calculateModelScore(**context):
        storeScores.update(context['ti'].xcom_pull(task_ids=f'collate_final_score_{algo}'))
     print(storeScores)
     ratio = context['ti'].xcom_pull(task_ids='preprocess')
-    calculateScore(storeScores,[],simplicity_hash,weightage_hash,speed_hash,ratio)
+    final_score = calculateScore(storeScores,[],simplicity_hash,weightage_hash,speed_hash,ratio)
+    # for (key,value) in final_score.items() :
+    #     with mlflow.start_run(run_name=key) as run:
+    #         mlflow.log_metric("Weighted Score",value)
+
+    return final_score
+
 
 
 compare_final_score = PythonOperator(
@@ -156,7 +220,7 @@ for algo in ml_algos :
     prev_task_score = None
     for i in range(kfold_validation_count):
         task_score = PythonOperator(
-            task_id = f'score_{i}_{algo}',
+            task_id = f'kfold_{i}_{algo}',
             python_callable=score,
             op_args=[i,algo],
             # provide_context=True,

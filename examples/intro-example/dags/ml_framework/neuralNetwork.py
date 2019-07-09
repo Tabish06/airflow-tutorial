@@ -17,17 +17,15 @@ def nn_model(dim):
                 kernel_regularizer=regularizers.l2(0.01),
                 activity_regularizer=regularizers.l1(0.01)))
     #Layer 2
-    model.add(Dense(5,activation='relu'))
+    model.add(Dense(10,activation='relu'))
     model.add(Dropout(0.25))
     
-    
+     
     #output layer
-    model.add(Dense(3,activation='relu'))
+    model.add(Dense(10,activation='relu'))
     model.add(Dropout(0.25))
 
-    model.add(Dense(5,activation='relu'))
-    model.add(Dropout(0.5))
-
+    model.add(Dense(10,activation='relu'))
 #     model.add(Dense(100,activation='tanh'))
     
     model.add(Dense(2,activation='softmax'))
